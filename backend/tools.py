@@ -28,6 +28,5 @@ class AgentTools:
         return tavily_search
 
 
-
 if __name__ == "__main__":
     AgentTools().search_web("what is weahter in pakistan")
