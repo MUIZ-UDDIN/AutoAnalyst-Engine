@@ -1,7 +1,6 @@
 import pathlib
 from tavily import TavilyClient
-from config import TAVILY_API_KEY
-from config import OUTPUT_DIR
+from config import TAVILY_API_KEY, OUTPUT_DIR
 
 class AgentTools:
     pass
