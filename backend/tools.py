@@ -1,18 +1,14 @@
 import pathlib
 from tavily import TavilyClient
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
+from config import TAVILY_API_KEY
+from config import OUTPUT_DIR
 
 class AgentTools:
     pass
 
     def __init__(self) -> None:
-        self.tavily_api = TavilyClient(api_key=os.getenv("tavily_api"))
-        self.research_outpt = pathlib.Path(__file__).parent.parent / "research_output"
-
-        self.research_outpt.mkdir(parents=True, exist_ok=True)
+        self.tavily_api = TavilyClient(api_key=TAVILY_API_KEY)
+        self.research_outpt = OUTPUT_DIR
         
     def search_web(self, query: str):
         tavily_search = self.tavily_api.search(query=query, search_depth="advanced")
