@@ -10,23 +10,38 @@ class AgentTools:
 
     def __init__(self) -> None:
         self.tavily_api = TavilyClient(api_key=os.getenv("tavily_api"))
-        self.result = []
-        self.research_outpt = pathlib.Path("../research_output")
+        self.research_outpt = pathlib.Path(__file__).parent.parent / "research_output"
+
+        self.research_outpt.mkdir(parents=True, exist_ok=True)
         
     def search_web(self, query: str):
         tavily_search = self.tavily_api.search(query=query, search_depth="advanced")
+        data = []
 
         results = tavily_search.get("results")
-            
-        for result in results:
-            title, url, content =result["title"], result["url"], result["content"]
-            self.result.append({"title": title, "url": url, "content": content})
 
         if not results:
             return "No results found"
+            
+        for result in results:
+            title, url, content =result["title"], result["url"], result["content"]
 
-        return tavily_search
+            formated_str = f"Title:{title}\nURL: {url}\nContent: {content}"
+            data.append(formated_str)
+
+        return "\n\n".join(data)
+
+    def save_report(self, filename: str, content: str):
+        filepath = self.research_outpt / pathlib.Path(filename).with_suffix(".md")
+        filepath.write_text(content, encoding="utf-8")
+
 
 
 if __name__ == "__main__":
-    AgentTools().search_web("what is weahter in pakistan")
+    engine = AgentTools()
+    
+    data = engine.search_web("what is weahter in pakistan")
+    print("search done")
+
+    engine.save_report("test", data)
+    print("save done")
