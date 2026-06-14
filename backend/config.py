@@ -4,6 +4,7 @@ import pathlib
 
 load_dotenv()
 
+MODEL_NAME = "llama-3.1-8b-instant"
 TAVILY_API_KEY = os.getenv("tavily_api")
 GROQ_API_KEY = os.getenv("groq_api")
 

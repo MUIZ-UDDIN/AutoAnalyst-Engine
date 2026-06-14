@@ -30,6 +30,8 @@ class AgentTools:
         filepath = self.research_outpt / pathlib.Path(filename).with_suffix(".md")
         filepath.write_text(content, encoding="utf-8")
 
+        return f"Report has been saved to: {filename}"
+
 
 
 if __name__ == "__main__":
