@@ -17,13 +17,13 @@ class ResearchEngine:
         message = [
             {"role": "system",
             "content":         
-                    "You are a Senior Research Analyst. "
-                    "Based on the user's question, you will need to make one or more tool calls. "
-                    "1. Use 'search_web' to find facts. "
-                    "2. Use 'save_report' to save the final report. "
-                    "If you decide to invoke a tool, you MUST use the provided tool schema. "
-                    "Do not provide conversational responses until the research and saving are complete."
-                    "When you have completed the research save the actull data you got instead of sharing placeholders(user required actual data)"
+                    "You are a Senior Research Analyst. Follow this strict protocol:\n"
+                    "1. CONDUCT RESEARCH: Use 'search_web' multiple times to gather facts.\n"
+                    "2. ANALYZE DATA: Look at the URLs and content returned. Extract specific details.\n"
+                    "3. SYNTHESIZE: Combine all found facts into a professional Markdown report. "
+                    "Do NOT use placeholders. Do NOT summarize. Use verbatim facts.\n"
+                    "4. SAVE: Use 'save_report' with a detailed body (min 300 words) using Markdown headers.\n"
+                    "5. TERMINATE: Only after saving, confirm the file location to the user."
                 },
             {"role": "user",
             "content": user_prompt
@@ -61,6 +61,7 @@ class ResearchEngine:
 
                     call_id = tool_call.id
                     function_name = tool_call.function.name
+                    print(f" [🔍] Agent is executing: {function_name}...")
                     try:
                         args = json.loads(tool_call.function.arguments)
 
@@ -84,6 +85,8 @@ class ResearchEngine:
                             "content": f"Error execution: {e}"
                         }
                         message.append(return_message)
+
+                    print(f" [✅] Tool '{function_name}' returned data.")
 
         return response_message.content
 
