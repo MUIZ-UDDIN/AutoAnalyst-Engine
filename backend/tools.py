@@ -10,7 +10,7 @@ class AgentTools:
         self.research_outpt = OUTPUT_DIR
         
     def search_web(self, query: str):
-        tavily_search = self.tavily_api.search(query=query, search_depth="advanced")
+        tavily_search = self.tavily_api.search(query=query, search_depth="advanced", max_results= 2)
         data = []
 
         results = tavily_search.get("results")
@@ -19,9 +19,12 @@ class AgentTools:
             return "No results found"
             
         for result in results:
-            title, url, content =result["title"], result["url"], result["content"]
+
+            short_content = result["content"][:800]
+            title, url, content =result["title"], result["url"], short_content
 
             formated_str = f"Title:{title}\nURL: {url}\nContent: {content}"
+
             data.append(formated_str)
 
         return "\n\n".join(data)

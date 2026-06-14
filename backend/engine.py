@@ -18,17 +18,28 @@ class ResearchEngine:
             {"role": "system",
             "content":         
                     "You are a Senior Research Analyst. "
-                    "1. Use 'search_web' to find detailed information. "
-                    "2. You MUST combine all the facts you find into a long, professional Markdown report. "
-                    "3. Use 'save_report' to save this full detailed report. "
-                    "4. The 'content' you provide to 'save_report' must be at least 3-4 paragraphs long with headings."
+                    "Based on the user's question, you will need to make one or more tool calls. "
+                    "1. Use 'search_web' to find facts. "
+                    "2. Use 'save_report' to save the final report. "
+                    "If you decide to invoke a tool, you MUST use the provided tool schema. "
+                    "Do not provide conversational responses until the research and saving are complete."
+                    "When you have completed the research save the actull data you got instead of sharing placeholders(user required actual data)"
                 },
             {"role": "user",
             "content": user_prompt
             }
         ]
 
+        steps = 0
+
         while True:
+
+            steps += 1
+            if steps > 5:
+                print("Max Steps hit!")
+
+                break
+
             response = self.groq_client.chat.completions.create(
                 model= MODEL_NAME,
                 messages= message,
@@ -42,29 +53,39 @@ class ResearchEngine:
 
             if not tool_calls:
                 print(response_message.content)
-                
+                    
                 break
-            
+                
             if tool_calls:
                 for tool_call in tool_calls:
 
                     call_id = tool_call.id
                     function_name = tool_call.function.name
-                    args = json.loads(tool_call.function.arguments)
+                    try:
+                        args = json.loads(tool_call.function.arguments)
 
-                    target_function = getattr(self.tools_instance, function_name)
-                    result = target_function(**args)
+                        target_function = getattr(self.tools_instance, function_name)
+                        result = target_function(**args)
 
-                    tool_response = {
-                        "role": "tool",
-                        "name": function_name,
-                        "tool_call_id": call_id,
-                        "content": result
-                    }
-            
-                    message.append(tool_response)
+                        tool_response = {
+                            "role": "tool",
+                            "tool_call_id": call_id,
+                            "name": function_name,
+                            "content": result
+                        }
+                    
+                        message.append(tool_response)
 
-        return "Research Task Completed Successfully."
+                    except Exception as e:
+                        return_message = {
+                            "role": "tool",
+                            "tool_call_id": call_id,
+                            "name": function_name,
+                            "content": f"Error execution: {e}"
+                        }
+                        message.append(return_message)
+
+        return response_message.content
 
 if __name__ == "__main__":
     engine = ResearchEngine()
@@ -72,7 +93,6 @@ if __name__ == "__main__":
     try:
 
         result = engine.run(user_input)
-        print(result)
 
     except Exception as e:
         print(f"error no response found {e}")
