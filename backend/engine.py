@@ -16,7 +16,7 @@ class ResearchEngine:
     def run(self, user_prompt: str):
         response_messages = []
 
-        self.message = [
+        message = [
             {"role": "system",
             "content": "You are an expert researcher. Use search_web to find facts, and save_report as your absolute final step."
             },
@@ -25,22 +25,22 @@ class ResearchEngine:
             }
         ]
 
-    while True:
-        response = self.groq_client.chat.completions.create(
-            model= "llama3-70b-8192",
-            message= self.message,
-            tools= TOOLS
-        )
+        while True:
+            response = self.groq_client.chat.completions.create(
+                model= "llama3-70b-8192",
+                message= message,
+                tools= TOOLS
+            )
 
-        response_message = response.choices[0].message
-        response_messages.append(response_message)
+            response_message = response.choices[0].message
+            response_messages.append(response_message)
 
-        tool_calls = response_message.tool_calls
+            tool_calls = response_message.tool_calls
 
-        if not tool_calls:
-            print(response_message.content)
-            
-            break
+            if not tool_calls:
+                print(response_message.content)
+                
+                break
 
 
 if __name__ == "__main__":
