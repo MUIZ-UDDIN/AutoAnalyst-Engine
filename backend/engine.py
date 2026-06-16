@@ -74,7 +74,6 @@ class ResearchEngine:
                             "name": function_name,
                             "content": result
                         }
-                    
                         message.append(tool_response)
 
                     except Exception as e:
