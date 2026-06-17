@@ -1,0 +1,210 @@
+"use client";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Cpu, Activity, Moon } from "lucide-react";
+import InputArea from "./inputarea";
+import ThoughtStream from "./Thoughtstream";
+import ReportViewer from "./Reportview";
+import ArtifactsSidebar from "./Artifactssidebar";
+import { MockAgentWebSocket } from "@/services/mockWeSocket";
+import { generateId } from "@/lib/utils";
+import type { AgentState, LogEntry, ResearchReport, WsMessage, Artifact } from "@/types";
+
+const INITIAL_STATE: AgentState = {
+  status: "idle",
+  query: "",
+  logs: [],
+  report: null,
+  artifacts: [],
+  elapsedMs: 0,
+};
+
+// Seed artifacts so the sidebar isn't empty on first load
+const SEED_ARTIFACTS: Artifact[] = [
+  {
+    id: "seed-1",
+    filename: "llm-market-analysis.md",
+    title: "LLM Market Analysis 2025",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    sizeKb: 24,
+    downloadUrl: "#",
+  },
+  {
+    id: "seed-2",
+    filename: "vector-db-comparison.md",
+    title: "Vector DB Comparison Report",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    sizeKb: 18,
+    downloadUrl: "#",
+  },
+];
+
+export default function Dashboard() {
+  const [state, setState] = useState<AgentState>({
+    ...INITIAL_STATE,
+    artifacts: SEED_ARTIFACTS,
+  });
+
+  const wsRef = useRef<MockAgentWebSocket | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number>(0);
+
+  // Tick the elapsed timer while running
+  useEffect(() => {
+    if (state.status === "running") {
+      startTimeRef.current = Date.now() - state.elapsedMs;
+      timerRef.current = setInterval(() => {
+        setState((s) => ({ ...s, elapsedMs: Date.now() - startTimeRef.current }));
+      }, 100);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [state.status]);
+
+  const handleMessage = useCallback((msg: WsMessage) => {
+    if (msg.type === "log") {
+      setState((s) => ({
+        ...s,
+        logs: [...s.logs, msg.payload as LogEntry],
+      }));
+    } else if (msg.type === "report") {
+      setState((s) => ({ ...s, report: msg.payload as ResearchReport }));
+    } else if (msg.type === "complete") {
+      setState((s) => {
+        // Add to artifacts on completion
+        const report = s.report;
+        const newArtifact: Artifact | null = report
+          ? {
+              id: generateId(),
+              filename: `${report.title.slice(0, 40).replace(/\s+/g, "-").toLowerCase()}.md`,
+              title: report.title,
+              createdAt: new Date().toISOString(),
+              sizeKb: Math.round(report.markdown.length / 1024) + 8,
+              downloadUrl: "#",
+            }
+          : null;
+
+        return {
+          ...s,
+          status: "complete",
+          artifacts: newArtifact ? [newArtifact, ...s.artifacts] : s.artifacts,
+        };
+      });
+    } else if (msg.type === "error") {
+      setState((s) => ({ ...s, status: "error" }));
+    }
+  }, []);
+
+  const handleStart = useCallback((query: string) => {
+    // Cancel any running session
+    wsRef.current?.disconnect();
+
+    setState((s) => ({
+      ...s,
+      status: "running",
+      query,
+      logs: [],
+      report: null,
+      elapsedMs: 0,
+    }));
+
+    wsRef.current = new MockAgentWebSocket(
+      query,
+      handleMessage,
+      () => {} // onClose — state is set via "complete" message
+    );
+  }, [handleMessage]);
+
+  const handleStop = useCallback(() => {
+    wsRef.current?.disconnect();
+    wsRef.current = null;
+    setState((s) => ({ ...s, status: "idle" }));
+  }, []);
+
+  const handleDeleteArtifact = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      artifacts: s.artifacts.filter((a) => a.id !== id),
+    }));
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { wsRef.current?.disconnect(); };
+  }, []);
+
+  return (
+    <div className="flex h-screen flex-col bg-[#060a12] text-slate-100 overflow-hidden">
+      {/* ── Nav bar ──────────────────────────────────────────────────── */}
+      <nav className="flex items-center gap-3 border-b border-white/[0.06] bg-[#060a12]/80 px-6 py-3 backdrop-blur-md">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-800 shadow-[0_0_12px_rgba(99,102,241,0.4)]">
+            <Cpu className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[15px] font-bold tracking-tight text-white">AutoAnalyst</span>
+            <span className="text-[13px] font-normal text-indigo-400">Engine</span>
+          </div>
+        </div>
+
+        {/* Status pill */}
+        <div className="ml-4 flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1">
+          <Activity className="h-3 w-3 text-slate-500" />
+          <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
+            {state.status === "running" ? (
+              <span className="text-emerald-400">Agent Active</span>
+            ) : state.status === "complete" ? (
+              <span className="text-indigo-400">Report Ready</span>
+            ) : (
+              "Standby"
+            )}
+          </span>
+        </div>
+
+        <div className="ml-auto flex items-center gap-3">
+          <span className="font-mono text-[11px] text-slate-700">v0.1.0-alpha</span>
+          <div className="h-4 w-px bg-white/10" />
+          <Moon className="h-4 w-4 text-slate-600" />
+        </div>
+      </nav>
+
+      {/* ── Command Center ────────────────────────────────────────────── */}
+      <div className="border-b border-white/[0.06] bg-gradient-to-b from-indigo-950/10 to-transparent px-6 py-4">
+        <InputArea
+          onStart={handleStart}
+          onStop={handleStop}
+          status={state.status}
+        />
+      </div>
+
+      {/* ── 3-Column Layout ───────────────────────────────────────────── */}
+      <div className="flex flex-1 gap-3 overflow-hidden p-4">
+        {/* Col 1: Artifacts sidebar */}
+        <div className="w-[220px] flex-shrink-0">
+          <ArtifactsSidebar
+            artifacts={state.artifacts}
+            onDelete={handleDeleteArtifact}
+          />
+        </div>
+
+        {/* Col 2: Thought Stream */}
+        <div className="w-[300px] flex-shrink-0">
+          <ThoughtStream
+            logs={state.logs}
+            status={state.status}
+            elapsedMs={state.elapsedMs}
+          />
+        </div>
+
+        {/* Col 3: Report Viewer — fills remaining space */}
+        <div className="flex-1 min-w-0">
+          <ReportViewer
+            report={state.report}
+            status={state.status}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
