@@ -93,7 +93,6 @@ if __name__ == "__main__":
     engine = ResearchEngine()
     user_input = "Research the latest news on AI Agents and save a report named ai_agents.txt"
     try:
-
         result = engine.run(user_input)
 
     except Exception as e:
