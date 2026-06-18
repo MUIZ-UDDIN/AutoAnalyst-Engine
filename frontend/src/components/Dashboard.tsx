@@ -6,7 +6,7 @@ import InputArea from "./inputarea";
 import ThoughtStream from "./Thoughtstream";
 import ReportViewer from "./Reportview";
 import ArtifactsSidebar from "./Artifactssidebar";
-import { MockAgentWebSocket } from "@/services/mockWeSocket";
+import { AgentWebSocket } from "@/services/AgentWeSocket";
 import { generateId } from "@/lib/utils";
 import type { AgentState, LogEntry, ResearchReport, WsMessage, Artifact } from "@/types";
 
@@ -21,22 +21,7 @@ const INITIAL_STATE: AgentState = {
 
 // Seed artifacts so the sidebar isn't empty on first load
 const SEED_ARTIFACTS: Artifact[] = [
-  {
-    id: "seed-1",
-    filename: "llm-market-analysis.md",
-    title: "LLM Market Analysis 2025",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    sizeKb: 24,
-    downloadUrl: "#",
-  },
-  {
-    id: "seed-2",
-    filename: "vector-db-comparison.md",
-    title: "Vector DB Comparison Report",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    sizeKb: 18,
-    downloadUrl: "#",
-  },
+
 ];
 
 export default function Dashboard() {
@@ -45,7 +30,7 @@ export default function Dashboard() {
     artifacts: SEED_ARTIFACTS,
   });
 
-  const wsRef = useRef<MockAgentWebSocket | null>(null);
+  const wsRef = useRef<AgentWebSocket | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
 
@@ -60,7 +45,7 @@ export default function Dashboard() {
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [state.status]);
+  }, [state.status, state.elapsedMs]);
 
   const handleMessage = useCallback((msg: WsMessage) => {
     if (msg.type === "log") {
@@ -109,7 +94,7 @@ export default function Dashboard() {
       elapsedMs: 0,
     }));
 
-    wsRef.current = new MockAgentWebSocket(
+    wsRef.current = new AgentWebSocket(
       query,
       handleMessage,
       () => {} // onClose — state is set via "complete" message

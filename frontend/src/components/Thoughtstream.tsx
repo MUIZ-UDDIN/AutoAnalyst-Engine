@@ -38,7 +38,7 @@ const STEP_CONFIG: Record<
 };
 
 function LogRow({ entry, isLatest }: { entry: LogEntry; isLatest: boolean }) {
-  const cfg = STEP_CONFIG[entry.step];
+  const cfg = STEP_CONFIG[entry.step] || STEP_CONFIG['reason'];
   const Icon = cfg.icon;
 
   return (

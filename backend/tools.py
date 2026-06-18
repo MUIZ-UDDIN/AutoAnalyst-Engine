@@ -1,6 +1,6 @@
 import pathlib
 from tavily import TavilyClient
-from config import TAVILY_API_KEY, OUTPUT_DIR
+from backend.config import TAVILY_API_KEY, OUTPUT_DIR
 
 class AgentTools:
     pass
@@ -9,7 +9,7 @@ class AgentTools:
         self.tavily_api = TavilyClient(api_key=TAVILY_API_KEY)
         self.research_outpt = OUTPUT_DIR
         
-    def search_web(self, query: str):
+    async def search_web(self, query: str):
         tavily_search = self.tavily_api.search(query=query, search_depth="advanced", max_results= 2)
         data = []
 

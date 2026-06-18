@@ -4,7 +4,6 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { FileText, Download, Copy, CheckCheck, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { ResearchReport, AgentStatus } from "@/types";
 
 interface ReportViewerProps {
