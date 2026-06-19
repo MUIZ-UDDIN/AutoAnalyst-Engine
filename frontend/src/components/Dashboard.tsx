@@ -21,7 +21,6 @@ const INITIAL_STATE: AgentState = {
 
 // Seed artifacts so the sidebar isn't empty on first load
 const SEED_ARTIFACTS: Artifact[] = [
-
 ];
 
 export default function Dashboard() {
