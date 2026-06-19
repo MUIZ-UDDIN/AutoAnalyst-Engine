@@ -46,39 +46,44 @@ export default function Dashboard() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [state.status, state.elapsedMs]);
 
-  const handleMessage = useCallback((msg: WsMessage) => {
-    if (msg.type === "log") {
-      setState((s) => ({
-        ...s,
-        logs: [...s.logs, msg.payload as LogEntry],
-      }));
-    } else if (msg.type === "report") {
-      setState((s) => ({ ...s, report: msg.payload as ResearchReport }));
-    } else if (msg.type === "complete") {
-      setState((s) => {
-        // Add to artifacts on completion
-        const report = s.report;
-        const newArtifact: Artifact | null = report
-          ? {
-              id: generateId(),
-              filename: `${report.title.slice(0, 40).replace(/\s+/g, "-").toLowerCase()}.md`,
-              title: report.title,
-              createdAt: new Date().toISOString(),
-              sizeKb: Math.round(report.markdown.length / 1024) + 8,
-              downloadUrl: "#",
-            }
-          : null;
-
-        return {
-          ...s,
-          status: "complete",
-          artifacts: newArtifact ? [newArtifact, ...s.artifacts] : s.artifacts,
-        };
-      });
-    } else if (msg.type === "error") {
-      setState((s) => ({ ...s, status: "error" }));
-    }
-  }, []);
+const handleMessage = useCallback((msg: WsMessage) => {
+  if (msg.type === "log") {
+    setState((s) => ({
+      ...s,
+      logs: [...s.logs, msg.payload as LogEntry],
+    }));
+  } 
+  
+  else if (msg.type === "report") {
+    const reportData = msg.payload as ResearchReport;
+    
+    setState((s) => ({
+      ...s,
+      report: reportData,
+      // LOGIC: Create the artifact HERE, using the real data and real URL
+      artifacts: [
+        {
+          id: generateId(),
+          filename: reportData.filename || `${reportData.title}.md`,
+          title: reportData.title,
+          createdAt: reportData.createdAt || new Date().toISOString(),
+          sizeKb: reportData.sizeKb || 10,
+          downloadUrl: reportData.downloadUrl, // <--- NO MORE "#"
+        },
+        ...s.artifacts,
+      ],
+    }));
+  } 
+  
+  else if (msg.type === "complete") {
+    // LOGIC: Only change the status. Do NOT add a new artifact here.
+    setState((s) => ({ ...s, status: "complete" }));
+  } 
+  
+  else if (msg.type === "error") {
+    setState((s) => ({ ...s, status: "error" }));
+  }
+}, []);
 
   const handleStart = useCallback((query: string) => {
     // Cancel any running session

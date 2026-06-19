@@ -25,6 +25,9 @@ export interface ResearchReport {
   createdAt: string; // ISO string
   wordCount: number;
   sources: string[];
+  filename?: string;    
+  sizeKb?: number;      
+  downloadUrl: string;
 }
 
 export interface Artifact {
