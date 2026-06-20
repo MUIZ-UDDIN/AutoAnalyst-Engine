@@ -31,7 +31,6 @@ async def research_websocket(websocket: WebSocket):
     await websocket.accept()
 
     try:
-
         data = await websocket.receive_json()
         user_prompt = data.get("prompt")
 
