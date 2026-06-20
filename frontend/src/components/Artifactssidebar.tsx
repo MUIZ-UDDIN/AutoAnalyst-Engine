@@ -53,19 +53,19 @@ function ArtifactRow({
       </div>
 
       {/* Actions */}
-      <div className="mt-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+      <div className="mt-2.5 flex items-center gap-1.5 group-hover:opacity-100 transition-opacity duration-150 cursor-pointer">
         <a
           href={artifact.downloadUrl}
           download
           className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-white/5 py-1.5 text-[11px] text-slate-400 hover:bg-indigo-500/20 hover:text-indigo-300 transition-colors duration-150"
         >
-          <Download className="h-3 w-3" />
+          <Download className="h-3 w-5" />
           Download
         </a>
         <button
           onClick={handleDelete}
           className={cn(
-            "flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] transition-colors duration-150",
+            "cursor-pointer flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] transition-colors duration-150 cursor-hover",
             confirmDelete
               ? "bg-red-500/20 text-red-400"
               : "bg-white/5 text-slate-600 hover:bg-red-500/10 hover:text-red-400"

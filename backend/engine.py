@@ -28,7 +28,8 @@ class ResearchEngine:
                 "WORKFLOW:\n"
                 "1. Use 'search_web' to gather specific sports facts.\n"
                 "2. Once facts are gathered, use 'save_report' to store the final Markdown report.\n"
-                "3. Your final response after saving must be a brief confirmation."
+                "3. STRICT PROTOCOL: Respond ONLY with tool calls. No conversational text."
+                "4. Your final response after saving must be a brief confirmation."
                 },
             {"role": "user",
             "content": user_prompt

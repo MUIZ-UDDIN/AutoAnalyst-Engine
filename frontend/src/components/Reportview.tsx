@@ -51,7 +51,7 @@ export default function ReportViewer({ report, status }: ReportViewerProps) {
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-medium text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all duration-150"
+              className="cursor-pointer flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-medium text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all duration-150"
             >
               {copied
                 ? <><CheckCheck className="h-3.5 w-3.5 text-emerald-400" />Copied</>
@@ -60,7 +60,7 @@ export default function ReportViewer({ report, status }: ReportViewerProps) {
             </button>
             <button
               onClick={handleDownload}
-              className="flex items-center gap-1.5 rounded-lg bg-indigo-600/90 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-indigo-500 transition-all duration-150"
+              className="cursor-pointer flex items-center gap-1.5 rounded-lg bg-indigo-600/90 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-indigo-500 transition-all duration-150"
             >
               <Download className="h-3.5 w-3.5" />
               Export .md

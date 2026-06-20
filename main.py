@@ -117,3 +117,11 @@ async def get_artifacts():
                     "downloadUrl": f"http://localhost:8000/reports/{filename}"
                 })
     return artifacts
+
+@app.delete("/api/artifacts/{filename}")
+async def delete_artifact(filename: str):
+    file_path = os.path.join("research_output", filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return {"status": "deleted"}
+    return {"status": "error", "message": "File not found"}

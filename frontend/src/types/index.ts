@@ -32,10 +32,10 @@ export interface ResearchReport {
 
 export interface Artifact {
   id: string;
-  filename: string;
+  filename?: string;
   title: string;
   createdAt: string;
-  sizeKb: number;
+  sizeKb?: number;
   downloadUrl: string; // real FastAPI endpoint later
 }
 

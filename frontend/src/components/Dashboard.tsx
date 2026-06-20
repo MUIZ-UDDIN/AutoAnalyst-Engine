@@ -57,21 +57,20 @@ const handleMessage = useCallback((msg: WsMessage) => {
   else if (msg.type === "report") {
     const reportData = msg.payload as ResearchReport;
     
+    const newArtifact: Artifact = {
+      id: reportData.id,
+      title: reportData.title,
+      filename: reportData.filename,
+      createdAt: reportData.createdAt,
+      sizeKb: reportData.sizeKb || 0,
+      downloadUrl: reportData.downloadUrl, // This fixes the HTML download bug
+    };
+
     setState((s) => ({
       ...s,
       report: reportData,
       // LOGIC: Create the artifact HERE, using the real data and real URL
-      artifacts: [
-        {
-          id: generateId(),
-          filename: reportData.filename || `${reportData.title}.md`,
-          title: reportData.title,
-          createdAt: reportData.createdAt || new Date().toISOString(),
-          sizeKb: reportData.sizeKb || 10,
-          downloadUrl: reportData.downloadUrl, // <--- NO MORE "#"
-        },
-        ...s.artifacts,
-      ],
+      artifacts: [newArtifact, ...s.artifacts],
     }));
   } 
   
@@ -111,12 +110,25 @@ const handleMessage = useCallback((msg: WsMessage) => {
     setState((s) => ({ ...s, status: "idle" }));
   }, []);
 
-  const handleDeleteArtifact = useCallback((id: string) => {
+  const handleDeleteArtifact = useCallback(async (id: string) => {
+    const target = state.artifacts.find(a => a.id === id);
+  
+    if (target?.filename) {
+      try {
+        // 2. Tell Python to delete the physical file
+        await fetch(`http://localhost:8000/api/artifacts/${target.filename}`, {
+          method: 'DELETE'
+        });
+      } catch (e) {
+        console.error("Failed to delete from disk", e);
+      }
+    }
+
     setState((s) => ({
       ...s,
       artifacts: s.artifacts.filter((a) => a.id !== id),
     }));
-  }, []);
+  }, [state.artifacts]);
 
   // Cleanup on unmount
   useEffect(() => {
