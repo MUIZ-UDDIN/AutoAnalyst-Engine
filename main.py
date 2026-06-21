@@ -119,6 +119,7 @@ async def get_artifacts():
     return artifacts
 
 @app.delete("/api/artifacts/{filename}")
+
 async def delete_artifact(filename: str):
     file_path = os.path.join("research_output", filename)
     if os.path.exists(file_path):
