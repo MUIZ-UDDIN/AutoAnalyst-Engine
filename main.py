@@ -1,128 +1,102 @@
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, staticfiles
-from backend.engine import ResearchEngine
+import sys
+import json
+import asyncio
 import uuid
 from datetime import datetime
-import os
-from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
-app = FastAPI()
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
-OUTPUT_DIR = "research_output"
-if not os.path.exists(OUTPUT_DIR):
-    os.makedirs(OUTPUT_DIR)
-    
-app.mount("/reports", StaticFiles(directory=OUTPUT_DIR), name="reports")
+sys.path.insert(0, str(Path(__file__).parent))
 
-origins = [
-    "http://localhost:3000"
-]
+from backend.engine import ResearchEngine
+from backend.config import OUTPUT_DIR
+
+
+app = FastAPI(title="AutoAnalyst Engine")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.websocket("/ws/research")
 async def research_websocket(websocket: WebSocket):
     await websocket.accept()
 
     try:
-        data = await websocket.receive_json()
-        user_prompt = data.get("prompt")
-
-        async def send_to_ui(category: str, data: str):
-            if websocket.client_state.value != 1:
-                return
-            # LOG LOGIC: If it's a search/reason/save step
-            if category in ["search", "analyze", "reason", "save"]:
-                await websocket.send_json({
-                    "type": "log",
-                    "payload": {
-                        "id": str(uuid.uuid4()),
-                            "step": category,
-                            "message": str(data), # Ensure data is a string
-                            "timestamp": datetime.now().isoformat()
-                        }
-                    })
-
-            # REPORT LOGIC: If it's the final report
-            elif category == "report":
-                await websocket.send_json({
-                    "type": "report",
-                    "payload": data # Here, data is the whole dictionary (markdown, title, etc.)
-                })
-
-            # COMPLETE LOGIC:
-            elif category == "complete":
-                await websocket.send_json({
-                    "type": "complete",
-                    "payload": {"message": str(data)}
-                })
-
-        engine = ResearchEngine()
-        await engine.run(user_prompt, on_step=send_to_ui)
-
-        # After engine finishes, send the "complete" signal
-        await websocket.send_json({"type": "complete", "payload": {"message": "done"}})
-
-    except WebSocketDisconnect:
-        print("Client disconnected normally")
-
+        raw = await websocket.receive_text()
+        data = json.loads(raw)
+        prompt = data.get("prompt", "")
     except Exception as e:
-        # 1. Log the full error to your terminal for debugging
-        print(f"CRITICAL ERROR: {e}")
+        await websocket.send_json({"type": "error", "payload": {"message": f"Invalid input: {e}"}})
+        await websocket.close()
+        return
 
-        # 2. Create a User-Friendly message
-        error_msg = str(e)
-        display_message = "An unexpected error occurred in the research engine."
+    engine = ResearchEngine()
 
-        # Detect the specific Llama 'Tag Hallucination' error
-        if "tool_use_failed" in error_msg:
-            display_message = "The AI attempted an invalid tool format. Please try a simpler research goal."
+    async def on_step(step_type: str, data):
+        """Bridge: convert backend step types → frontend WsMessage format."""
+        if step_type in ("reason", "search", "analyze"):
+            log_entry = {
+                "id": str(uuid.uuid4()),
+                "step": step_type,
+                "message": str(data),
+                "timestamp": datetime.now().isoformat(),
+            }
+            await websocket.send_json({"type": "log", "payload": log_entry})
 
-        # 3. Send the error to the UI Thought Stream
-        if websocket.client_state.value == 1:
-            await websocket.send_json({
-                "type": "log",
-                "payload": {
-                    "id": str(uuid.uuid4()),
-                    "step": "error", # This triggers the RED X icon in Claude's UI
-                    "message": display_message,
-                    "timestamp": datetime.now().isoformat()
-                }
-            })
-            
-            # 4. Optional: Send a 'complete' type to stop the frontend spinner
-            await websocket.send_json({"type": "complete", "payload": {"message": "failed"}})
+        elif step_type == "final":
+            log_entry = {
+                "id": str(uuid.uuid4()),
+                "step": "complete",
+                "message": str(data),
+                "timestamp": datetime.now().isoformat(),
+            }
+            await websocket.send_json({"type": "log", "payload": log_entry})
 
-@app.get("/api/artifacts")
-async def get_artifacts():
-    output_path = "./research_output" # Ensure this matches your config
-    artifacts = []
-    
-    if os.path.exists(output_path):
-        for filename in os.listdir(output_path):
-            if filename.endswith(".md"):
-                stats = os.stat(os.path.join(output_path, filename))
-                artifacts.append({
-                    "id": filename,
-                    "filename": filename,
-                    "title": filename.replace(".md", "").replace("_", " ").title(),
-                    "createdAt": datetime.fromtimestamp(stats.st_mtime).isoformat(),
-                    "sizeKb": round(stats.st_size / 1024, 1),
-                    "downloadUrl": f"http://localhost:8000/reports/{filename}"
-                })
-    return artifacts
+        elif step_type == "report":
+            await websocket.send_json({"type": "report", "payload": data})
 
-@app.delete("/api/artifacts/{filename}")
+        elif step_type == "complete":
+            await websocket.send_json({"type": "complete", "payload": {"message": str(data)}})
 
+        elif step_type == "error":
+            await websocket.send_json({"type": "error", "payload": {"message": str(data)}})
+
+    try:
+        await engine.run(prompt, on_step)
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        try:
+            await websocket.send_json({"type": "error", "payload": {"message": f"Engine error: {e}"}})
+        except WebSocketDisconnect:
+            pass
+
+
+@app.get("/api/reports/{filename:path}")
+async def download_report(filename: str):
+    filepath = OUTPUT_DIR / filename
+    if not filepath.exists():
+        filepath = OUTPUT_DIR / (filename + ".md") if not filename.endswith(".md") else filepath
+    if filepath.exists():
+        return FileResponse(filepath, media_type="text/markdown", filename=filepath.name)
+    return {"error": "File not found"}
+
+
+@app.delete("/api/artifacts/{filename:path}")
 async def delete_artifact(filename: str):
-    file_path = os.path.join("research_output", filename)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        return {"status": "deleted"}
-    return {"status": "error", "message": "File not found"}
+    filepath = OUTPUT_DIR / filename
+    if not filepath.exists():
+        filepath = OUTPUT_DIR / (filename + ".md") if not filename.endswith(".md") else filepath
+    if filepath.exists():
+        filepath.unlink()
+        return {"status": "deleted", "filename": filename}
+    return {"error": "File not found"}

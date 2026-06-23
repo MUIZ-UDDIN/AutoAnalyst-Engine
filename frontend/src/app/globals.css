@@ -3,7 +3,7 @@
 /* ── Custom font variables ────────────────────────────────────── */
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono), "Geist Mono", "Fira Code", ui-monospace, monospace;
+  --font-mono: var(--font-geist-mono), "Geist Mono", "Fira Code", ui-monospace, monospace;
 }
 
 /* ── Blinking cursor for Thought Stream ──────────────────────── */

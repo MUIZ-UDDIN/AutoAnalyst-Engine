@@ -19,9 +19,8 @@ const INITIAL_STATE: AgentState = {
   elapsedMs: 0,
 };
 
-// Seed artifacts so the sidebar isn't empty on first load
-const SEED_ARTIFACTS: Artifact[] = [
-];
+// New artifacts get prepended here when a report completes
+const SEED_ARTIFACTS: Artifact[] = [];
 
 export default function Dashboard() {
   const [state, setState] = useState<AgentState>({
@@ -80,7 +79,18 @@ const handleMessage = useCallback((msg: WsMessage) => {
   } 
   
   else if (msg.type === "error") {
-    setState((s) => ({ ...s, status: "error" }));
+    const errorPayload = msg.payload as { message: string };
+    const errorLog: LogEntry = {
+      id: generateId(),
+      step: "error",
+      message: errorPayload.message || "An unknown error occurred",
+      timestamp: new Date().toISOString(),
+    };
+    setState((s) => ({
+      ...s,
+      status: "error",
+      logs: [...s.logs, errorLog],
+    }));
   }
 }, []);
 

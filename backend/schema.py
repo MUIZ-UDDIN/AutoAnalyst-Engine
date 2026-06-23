@@ -26,7 +26,7 @@ TOOLS = [
                 "properties": {
                     "filename": {
                         "type": "string",
-                        "description": "The name of the file ending in .txt. Example: 'ai_market_report.txt'."
+                        "description": "The name of the file ending in .md. Example: 'ai_market_report.md'."
                     },
                     "content": {
                         "type": "string",
