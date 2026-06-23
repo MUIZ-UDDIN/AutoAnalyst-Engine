@@ -4,7 +4,7 @@ An autonomous AI research agent that searches the web, synthesizes findings, and
 
 ## UI
 
-
+<img width="1534" height="792" alt="image" src="https://github.com/user-attachments/assets/50ee6d74-7f90-448e-9666-6e043d533be1" />
 
 ## Architecture
 
